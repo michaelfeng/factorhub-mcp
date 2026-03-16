@@ -277,19 +277,52 @@ async def _dispatch(client: FactorHubClient, name: str, args: dict):
 
 
 # ============================================================
-# Main
+# Main — supports both stdio and HTTP/SSE transports
 # ============================================================
 
 def main():
-    asyncio.run(_run())
+    """Entry point. Use --sse flag for HTTP/SSE mode (for Smithery/remote)."""
+    if "--sse" in sys.argv:
+        _run_sse()
+    else:
+        asyncio.run(_run_stdio())
 
 
-async def _run():
+async def _run_stdio():
     async with mcp.server.stdio.stdio_server() as (read_stream, write_stream):
         await server.run(
             read_stream, write_stream,
             server.create_initialization_options(),
         )
+
+
+def _run_sse():
+    from starlette.applications import Starlette
+    from starlette.routing import Mount, Route
+    from mcp.server.sse import SseServerTransport
+    import uvicorn
+
+    sse = SseServerTransport("/messages/")
+
+    async def handle_sse(request):
+        async with sse.connect_sse(
+            request.scope, request.receive, request._send
+        ) as (read_stream, write_stream):
+            await server.run(
+                read_stream, write_stream,
+                server.create_initialization_options(),
+            )
+
+    app = Starlette(
+        routes=[
+            Route("/sse", endpoint=handle_sse),
+            Mount("/messages/", app=sse.handle_post_message),
+        ],
+    )
+
+    host = os.environ.get("MCP_HOST", "0.0.0.0")
+    port = int(os.environ.get("MCP_PORT", "8099"))
+    uvicorn.run(app, host=host, port=port)
 
 
 if __name__ == "__main__":
