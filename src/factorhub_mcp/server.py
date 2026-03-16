@@ -213,10 +213,10 @@ async def run_backtest(
 # ── Entry point ──────────────────────────────────────────────
 
 def main():
-    """Entry point. Supports stdio (default) and --sse for HTTP/SSE mode."""
-    if "--sse" in sys.argv:
-        port = int(os.environ.get("MCP_PORT", "8099"))
-        mcp.run(transport="sse", host="0.0.0.0", port=port)
+    """Entry point. Supports stdio (default), --sse, and --http for remote modes."""
+    port = int(os.environ.get("MCP_PORT", "8099"))
+    if "--sse" in sys.argv or "--http" in sys.argv:
+        mcp.run(transport="streamable-http", host="0.0.0.0", port=port)
     else:
         mcp.run(transport="stdio")
 
