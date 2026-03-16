@@ -299,7 +299,9 @@ async def _run_stdio():
 def _run_sse():
     from starlette.applications import Starlette
     from starlette.routing import Mount, Route
+    from starlette.responses import JSONResponse
     from mcp.server.sse import SseServerTransport
+    from mcp.server.streamable_http import StreamableHTTPServerTransport
     import uvicorn
 
     sse = SseServerTransport("/messages/")
@@ -313,8 +315,79 @@ def _run_sse():
                 server.create_initialization_options(),
             )
 
+    async def handle_streamable_http(request):
+        transport = StreamableHTTPServerTransport(
+            mcp_session_id=request.headers.get("mcp-session-id"),
+            is_json_response_enabled=True,
+        )
+        async with transport.connect() as (read_stream, write_stream):
+            await server.run(
+                read_stream, write_stream,
+                server.create_initialization_options(),
+            )
+
+    async def handle_mcp(request):
+        """Combined endpoint: GET for SSE, POST for Streamable HTTP."""
+        if request.method == "GET":
+            return await handle_sse(request)
+        elif request.method == "POST":
+            transport = StreamableHTTPServerTransport(
+                mcp_session_id=request.headers.get("mcp-session-id"),
+                is_json_response_enabled=True,
+            )
+            async with transport.connect() as (read_stream, write_stream):
+                # Forward the request body
+                body = await request.body()
+                import json as _json
+                msg = _json.loads(body)
+                await read_stream._queue.put(msg)
+                # Run server and collect response
+                await server.run(
+                    read_stream, write_stream,
+                    server.create_initialization_options(),
+                )
+            return JSONResponse({"ok": True})
+
+    async def server_card(request):
+        """MCP server discovery card for Smithery."""
+        return JSONResponse({
+            "name": "factorhub",
+            "description": "China A-share market data for AI agents — factor scores, market quotes, valuations, and strategy backtesting",
+            "url": os.environ.get("MCP_PUBLIC_URL", "https://factorhub.cn/mcp/sse"),
+            "transport": ["sse"],
+            "authentication": {
+                "type": "header",
+                "header": "X-API-Key",
+                "description": "FactorHub API key. Get one free at https://factorhub.cn/api-keys"
+            },
+            "tools": [
+                {"name": "list_factors", "description": "获取因子列表"},
+                {"name": "get_factor_scores", "description": "获取因子评分指标"},
+                {"name": "get_factor_nav", "description": "获取因子净值曲线"},
+                {"name": "get_market_daily", "description": "获取个股日线行情"},
+                {"name": "get_index_daily", "description": "获取指数日线"},
+                {"name": "get_valuation", "description": "获取估值指标"},
+                {"name": "get_stock_info", "description": "获取个股基本信息"},
+                {"name": "get_stock_list", "description": "股票筛选"},
+                {"name": "get_trade_dates", "description": "交易日历"},
+                {"name": "run_backtest", "description": "量化策略回测"},
+            ],
+            "configSchema": {
+                "type": "object",
+                "properties": {
+                    "apiKey": {
+                        "type": "string",
+                        "title": "FactorHub API Key",
+                        "description": "Your FactorHub API key. Get one free at https://factorhub.cn/api-keys"
+                    }
+                },
+                "required": ["apiKey"]
+            }
+        })
+
     app = Starlette(
         routes=[
+            Route("/.well-known/mcp/server-card.json", endpoint=server_card),
             Route("/sse", endpoint=handle_sse),
             Mount("/messages/", app=sse.handle_post_message),
         ],
