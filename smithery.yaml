@@ -1,0 +1,34 @@
+name: factorhub
+description: China A-share market data for AI agents — factor scores, market quotes, valuations, and strategy backtesting
+icon: https://factorhub.cn/favicon.ico
+author: FactorHub
+license: MIT
+homepage: https://factorhub.cn
+repository: https://github.com/michaelfeng/factorhub-mcp
+tags:
+  - finance
+  - china
+  - a-share
+  - quant
+  - factor-investing
+  - backtest
+  - market-data
+
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    properties:
+      apiKey:
+        type: string
+        title: FactorHub API Key
+        description: "Your FactorHub API key. Get one free at https://factorhub.cn/api-keys"
+    required:
+      - apiKey
+  commandFunction: |
+    (config) => ({
+      command: "factorhub-mcp",
+      env: {
+        FACTORHUB_API_KEY: config.apiKey
+      }
+    })

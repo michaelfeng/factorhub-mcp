@@ -1,0 +1,55 @@
+# OpenClaw Skill Configuration for FactorHub
+# Add this to your OpenClaw config to enable A-share market data tools
+
+name: factorhub
+description: 中国A股市场数据查询与量化回测
+version: "0.1.0"
+author: FactorHub
+
+# MCP server configuration
+mcp:
+  command: factorhub-mcp
+  env:
+    FACTORHUB_API_KEY: "${FACTORHUB_API_KEY}"
+
+# System prompt injected when this skill is active
+system_prompt: |
+  你可以使用 FactorHub 工具查询中国A股市场数据。
+
+  可用能力：
+  - 因子数据：查询因子列表、因子评分指标、因子净值曲线
+  - 市场行情：个股日线、指数日线、估值指标
+  - 股票信息：个股基本面、股票筛选
+  - 交易日历：查询交易日
+  - 策略回测：支持涨停首板、低估值、动量、均值回归等内置策略
+
+  当用户涉及A股数据分析、量化策略、选股时，应优先使用这些工具获取真实数据。
+
+# Tool routing — which tools belong to this skill
+tools:
+  - list_factors
+  - get_factor_scores
+  - get_factor_nav
+  - get_market_daily
+  - get_index_daily
+  - get_valuation
+  - get_stock_info
+  - get_stock_list
+  - get_trade_dates
+  - run_backtest
+
+# Trigger keywords — OpenClaw uses these to auto-activate the skill
+triggers:
+  - A股
+  - 因子
+  - 回测
+  - 行情
+  - 估值
+  - 选股
+  - 量化
+  - 沪深
+  - 涨停
+  - PE
+  - PB
+  - 夏普
+  - 回撤
