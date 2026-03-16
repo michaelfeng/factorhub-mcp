@@ -25,13 +25,11 @@ startCommand:
       apiKey:
         type: string
         title: FactorHub API Key
-        description: "Your FactorHub API key. Get one free at https://factorhub.cn/api-keys"
-    required:
-      - apiKey
+        description: "Your FactorHub API key (optional for free trial, required for paid plans). Get one at https://factorhub.cn/api-keys"
   commandFunction: |
     (config) => ({
       command: "factorhub-mcp",
       env: {
-        FACTORHUB_API_KEY: config.apiKey
+        FACTORHUB_API_KEY: config.apiKey || ""
       }
     })

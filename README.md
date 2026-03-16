@@ -2,10 +2,13 @@
 
 China A-share market data for AI agents. Query factor scores, market quotes, valuations, and run strategy backtests — all through the [Model Context Protocol (MCP)](https://modelcontextprotocol.io).
 
+[![smithery badge](https://smithery.ai/badge/factorhub)](https://smithery.ai/server/factorhub)
+
 ## Features
 
 | Tool | Description |
 |------|-------------|
+| `set_api_key` | 设置你的 API Key（可选，不设置使用免费体验额度） |
 | `list_factors` | 因子列表（分类、搜索） |
 | `get_factor_scores` | 因子评分指标（年化收益、夏普、IC等） |
 | `get_factor_nav` | 因子净值曲线 |
@@ -19,63 +22,74 @@ China A-share market data for AI agents. Query factor scores, market quotes, val
 
 ## Quick Start
 
-### 1. Get an API Key
+### Option 1: Try Free (No Registration)
 
-Sign up at [factorhub.cn](https://factorhub.cn) and generate your API key at the [API Keys page](https://factorhub.cn/api-keys). Free tier includes 10 API calls/day.
+Use the hosted server directly — no API key needed, includes free trial quota (10 calls/day).
 
-### 2. Install
+**Claude Desktop** — add to `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "factorhub": {
+      "command": "npx",
+      "args": ["-y", "@smithery/cli@latest", "run", "factorhub"]
+    }
+  }
+}
+```
+
+Or connect directly via SSE:
+
+```
+https://factorhub.cn/mcp/sse
+```
+
+### Option 2: Install with Your API Key
+
+For higher quotas, register at [factorhub.cn](https://factorhub.cn) and get your API key at the [API Keys page](https://factorhub.cn/api-keys).
 
 ```bash
 pip install factorhub-mcp
 ```
 
-Or install from source:
+**Claude Desktop** — add to `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "factorhub": {
+      "command": "factorhub-mcp",
+      "env": {
+        "FACTORHUB_API_KEY": "fh_your_api_key_here"
+      }
+    }
+  }
+}
+```
+
+**Cursor** — add to `.cursor/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "factorhub": {
+      "command": "factorhub-mcp",
+      "env": {
+        "FACTORHUB_API_KEY": "fh_your_api_key_here"
+      }
+    }
+  }
+}
+```
+
+**Claude Code** — run:
 
 ```bash
-git clone https://github.com/michaelfeng/factorhub-mcp.git
-cd factorhub-mcp
-pip install -e .
+claude mcp add factorhub -- env FACTORHUB_API_KEY=fh_your_api_key_here factorhub-mcp
 ```
 
-### 3. Configure
-
-#### Claude Desktop
-
-Add to your `claude_desktop_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "factorhub": {
-      "command": "factorhub-mcp",
-      "env": {
-        "FACTORHUB_API_KEY": "fh_your_api_key_here"
-      }
-    }
-  }
-}
-```
-
-#### Cursor
-
-Add to `.cursor/mcp.json`:
-
-```json
-{
-  "mcpServers": {
-    "factorhub": {
-      "command": "factorhub-mcp",
-      "env": {
-        "FACTORHUB_API_KEY": "fh_your_api_key_here"
-      }
-    }
-  }
-}
-```
-
-#### OpenClaw
-
-Copy `openclaw/factorhub-skill.yaml` to your OpenClaw skills directory, or add the MCP config directly:
+**OpenClaw** — add to your skill config:
 
 ```yaml
 providers:
@@ -86,21 +100,25 @@ providers:
       FACTORHUB_API_KEY: "fh_your_api_key_here"
 ```
 
-#### Smithery
+### Option 3: Smithery
 
 [![smithery badge](https://smithery.ai/badge/factorhub)](https://smithery.ai/server/factorhub)
 
-Install via Smithery for automatic setup.
+Install via [Smithery](https://smithery.ai/server/factorhub) for automatic setup with any MCP client.
 
 ## Usage Examples
 
 Once configured, ask your AI assistant:
 
 - "查看 FactorHub 有哪些因子"
-- "获取 ROE 因子的历史表现"
+- "获取动量因子的历史表现"
 - "帮我查一下贵州茅台最近一年的行情"
 - "用低估值策略回测沪深300成分股"
 - "对比动量因子和价值因子的夏普比率"
+
+You can also set your own API key mid-conversation for higher quotas:
+
+- "用我的 API Key fh_xxx 登录 FactorHub"
 
 ## Pricing
 

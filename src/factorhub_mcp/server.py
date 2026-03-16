@@ -24,21 +24,30 @@ mcp = FastMCP(
     instructions="China A-share market data for AI agents — factor scores, market quotes, valuations, and strategy backtesting",
 )
 
-_client: FactorHubClient | None = None
+# Shared client (uses env var key) + per-user client cache
+_shared_client: FactorHubClient | None = None
+_user_clients: dict[str, FactorHubClient] = {}
 
 
-def _get_client() -> FactorHubClient:
-    global _client
-    if _client is None:
-        api_key = os.environ.get("FACTORHUB_API_KEY", "")
-        base_url = os.environ.get("FACTORHUB_BASE_URL", "https://factorhub.cn/api/v1")
-        if not api_key:
+def _get_client(api_key: str = "") -> FactorHubClient:
+    """Get API client. Uses provided key, falls back to env var (shared free tier)."""
+    global _shared_client
+    base_url = os.environ.get("FACTORHUB_BASE_URL", "https://factorhub.cn/api/v1")
+
+    if api_key:
+        if api_key not in _user_clients:
+            _user_clients[api_key] = FactorHubClient(api_key=api_key, base_url=base_url)
+        return _user_clients[api_key]
+
+    if _shared_client is None:
+        key = os.environ.get("FACTORHUB_API_KEY", "")
+        if not key:
             raise RuntimeError(
                 "FACTORHUB_API_KEY environment variable is required.\n"
                 "Get your free API key at https://factorhub.cn/api-keys"
             )
-        _client = FactorHubClient(api_key=api_key, base_url=base_url)
-    return _client
+        _shared_client = FactorHubClient(api_key=key, base_url=base_url)
+    return _shared_client
 
 
 def _format(data) -> str:
@@ -60,7 +69,21 @@ def _handle_error(e: Exception) -> str:
     return f"执行失败: {e}"
 
 
+# Per-session API key storage (session_id → api_key)
+_session_keys: dict[str, str] = {}
+
+
+
 # ── Tools ────────────────────────────────────────────────────
+
+@mcp.tool()
+async def set_api_key(api_key: str) -> str:
+    """设置你的 FactorHub API Key。注册获取：https://factorhub.cn/api-keys。设置后本次会话将使用你的专属额度。"""
+    if not api_key.startswith("fh_"):
+        return "无效的 API Key 格式。Key 应以 fh_ 开头。获取地址：https://factorhub.cn/api-keys"
+    _session_keys["_global"] = api_key
+    return "API Key 已设置。本次会话将使用你的专属额度。"
+
 
 @mcp.tool()
 async def list_factors(
@@ -71,7 +94,7 @@ async def list_factors(
 ) -> str:
     """获取因子列表。支持按分类和关键词搜索。返回因子代码、名称、分类、年化收益、夏普比率等。"""
     try:
-        result = await _get_client().list_factors(category, search, page, page_size)
+        result = await _get_client(_session_keys.get("_global", "")).list_factors(category, search, page, page_size)
         return _format(result)
     except Exception as e:
         return _handle_error(e)
@@ -85,7 +108,7 @@ async def get_factor_scores(
 ) -> str:
     """获取单个因子的详细评分指标：年化收益、夏普比率、最大回撤、波动率、Alpha、Beta、IC均值等。"""
     try:
-        result = await _get_client().factor_scores(code, start_date, end_date)
+        result = await _get_client(_session_keys.get("_global", "")).factor_scores(code, start_date, end_date)
         return _format(result)
     except Exception as e:
         return _handle_error(e)
@@ -99,7 +122,7 @@ async def get_factor_nav(
 ) -> str:
     """获取因子净值曲线数据，用于分析因子历史表现趋势。"""
     try:
-        result = await _get_client().factor_nav(code, start_date, end_date)
+        result = await _get_client(_session_keys.get("_global", "")).factor_nav(code, start_date, end_date)
         return _format(result)
     except Exception as e:
         return _handle_error(e)
@@ -113,7 +136,7 @@ async def get_market_daily(
 ) -> str:
     """获取个股日线行情数据（OHLCV + 涨跌幅）。ts_code 如 000001.SZ、600519.SH。"""
     try:
-        result = await _get_client().market_daily(ts_code, start_date, end_date)
+        result = await _get_client(_session_keys.get("_global", "")).market_daily(ts_code, start_date, end_date)
         return _format(result)
     except Exception as e:
         return _handle_error(e)
@@ -127,7 +150,7 @@ async def get_index_daily(
 ) -> str:
     """获取指数日线行情。常用：000001.SH(上证)、399001.SZ(深证)、000300.SH(沪深300)、000905.SH(中证500)。"""
     try:
-        result = await _get_client().index_daily(ts_code, start_date, end_date)
+        result = await _get_client(_session_keys.get("_global", "")).index_daily(ts_code, start_date, end_date)
         return _format(result)
     except Exception as e:
         return _handle_error(e)
@@ -140,7 +163,7 @@ async def get_valuation(
 ) -> str:
     """获取股票估值指标：PE、PB、PS、股息率、总市值、流通市值、换手率等。"""
     try:
-        result = await _get_client().valuation(ts_code, trade_date)
+        result = await _get_client(_session_keys.get("_global", "")).valuation(ts_code, trade_date)
         return _format(result)
     except Exception as e:
         return _handle_error(e)
@@ -150,7 +173,7 @@ async def get_valuation(
 async def get_stock_info(ts_code: str) -> str:
     """获取单只股票基本信息：名称、行业、上市日期、市场板块等。"""
     try:
-        result = await _get_client().stock_info(ts_code)
+        result = await _get_client(_session_keys.get("_global", "")).stock_info(ts_code)
         return _format(result)
     except Exception as e:
         return _handle_error(e)
@@ -165,7 +188,7 @@ async def get_stock_list(
 ) -> str:
     """按条件筛选股票列表。可按交易所(SSE/SZSE)、行业筛选。"""
     try:
-        result = await _get_client().stock_list(exchange, industry, page, page_size)
+        result = await _get_client(_session_keys.get("_global", "")).stock_list(exchange, industry, page, page_size)
         return _format(result)
     except Exception as e:
         return _handle_error(e)
@@ -178,7 +201,7 @@ async def get_trade_dates(
 ) -> str:
     """获取交易日历，查询指定时间段内的交易日列表。"""
     try:
-        result = await _get_client().trade_dates(start_date, end_date)
+        result = await _get_client(_session_keys.get("_global", "")).trade_dates(start_date, end_date)
         return _format(result)
     except Exception as e:
         return _handle_error(e)
@@ -204,7 +227,7 @@ async def run_backtest(
         }
         if strategy_params:
             params["strategy_params"] = strategy_params
-        result = await _get_client().run_backtest(params)
+        result = await _get_client(_session_keys.get("_global", "")).run_backtest(params)
         return _format(result)
     except Exception as e:
         return _handle_error(e)
