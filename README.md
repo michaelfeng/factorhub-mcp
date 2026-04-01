@@ -119,10 +119,10 @@ providers:
 
 | 方案 | API 调用/天 | 回测/天 | 价格 |
 |------|------------|---------|------|
-| 免费版 | 10 | 1 | ¥0 |
-| 入门版 | 50 | 5 | ¥39/月 |
-| 专业版 | 200 | 20 | ¥99/月 |
-| 企业版 | 1000 | 100 | ¥299/月 |
+| Free | 20 | 3 | ¥0 |
+| Pro | 10,000 | 20 | ¥99/月 |
+| Pro Max | 40,000 | 100 | ¥199/月 |
+| Ultra | 不限 | 不限 | ¥899/月 |
 
 升级方案：[factorhub.cn/pricing](https://factorhub.cn/pricing)
 
@@ -256,10 +256,10 @@ Set your own API key mid-conversation for higher quotas:
 
 | Plan | API Calls/Day | Backtest/Day | Price |
 |------|---------------|--------------|-------|
-| Free | 10 | 1 | ¥0 |
-| Starter | 50 | 5 | ¥39/mo |
-| Pro | 200 | 20 | ¥99/mo |
-| Enterprise | 1000 | 100 | ¥299/mo |
+| Free | 20 | 3 | ¥0 |
+| Pro | 10,000 | 20 | ¥99/mo |
+| Pro Max | 40,000 | 100 | ¥199/mo |
+| Ultra | Unlimited | Unlimited | ¥899/mo |
 
 Upgrade at [factorhub.cn/pricing](https://factorhub.cn/pricing).
 
